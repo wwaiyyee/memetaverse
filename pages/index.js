@@ -42,12 +42,6 @@ export default function Home() {
           <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: '20px', color: '#1a1a2e', letterSpacing: '-0.3px' }}>taverse</span>
         </Link>
 
-        <div className={styles.navLinks}>
-          <Link href="/explore"    className={styles.navPill}>explore</Link>
-          <Link href="/contribute" className={styles.navPill}>contribute</Link>
-          <Link href="/history"    className={styles.navPill}>history</Link>
-        </div>
-
         <ConnectWallet />
       </nav>
 
@@ -160,20 +154,6 @@ export default function Home() {
               </div>
             </div>
           )}
-        </div>
-
-        {/* Chain badge */}
-        <div className={styles.chainBadge}>
-          <span className={styles.chainDot} />
-          built on monad · contributions recorded on&#8209;chain
-        </div>
-
-        {/* Zoom hint */}
-        <div className={styles.zoomHint}>
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35M11 8v6M8 11h6"/>
-          </svg>
-          scroll to zoom
         </div>
 
       </section>

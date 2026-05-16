@@ -13,24 +13,8 @@ export default function Navbar() {
         </span>
       </Link>
 
-      <div className="flex items-center gap-2">
-        <NavButton href="/explore">explore</NavButton>
-        <NavButton href="/contribute">contribute</NavButton>
-        <NavButton href="/history">history</NavButton>
-      </div>
-
       <ConnectWallet />
     </nav>
   );
 }
 
-function NavButton({ href, children }) {
-  return (
-    <Link
-      href={href}
-      className="px-5 py-2 rounded-full border border-[#002FA7]/20 text-sm text-[#1a1a2e]/60 hover:text-[#002FA7] hover:border-[#002FA7]/45 hover:bg-[#002FA7]/5 transition-colors"
-    >
-      {children}
-    </Link>
-  );
-}
