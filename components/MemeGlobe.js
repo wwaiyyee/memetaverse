@@ -1,29 +1,10 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-
-export const MEMES = [
-  { id: 1,  name: 'Doge',                   flag: '🐕', lat: 35.68,  lon: 139.65,  country: 'Japan',  year: '2013' },
-  { id: 2,  name: 'Rickroll',               flag: '🎤', lat: 51.51,  lon: -0.13,   country: 'UK',     year: '2007' },
-  { id: 3,  name: 'Distracted Boyfriend',   flag: '👀', lat: 41.39,  lon: 2.17,    country: 'Spain',  year: '2017' },
-  { id: 4,  name: 'This Is Fine',           flag: '🔥', lat: 38.91,  lon: -77.04,  country: 'USA',    year: '2013' },
-  { id: 5,  name: 'Pepe the Frog',          flag: '🐸', lat: 34.05,  lon: -118.24, country: 'USA',    year: '2005' },
-  { id: 6,  name: 'Trollface',              flag: '😏', lat: 37.77,  lon: -122.42, country: 'USA',    year: '2008' },
-  { id: 7,  name: 'Nyan Cat',               flag: '🌈', lat: 35.01,  lon: 135.77,  country: 'Japan',  year: '2011' },
-  { id: 8,  name: 'Stonks',                 flag: '📈', lat: 40.71,  lon: -74.01,  country: 'USA',    year: '2017' },
-  { id: 9,  name: 'Surprised Pikachu',      flag: '⚡', lat: 35.69,  lon: 139.69,  country: 'Japan',  year: '2018' },
-  { id: 10, name: 'Woman Yelling at Cat',   flag: '🐱', lat: 34.02,  lon: -118.49, country: 'USA',    year: '2019' },
-  { id: 11, name: 'Coffin Dance',           flag: '💃', lat: 5.60,   lon: -0.19,   country: 'Ghana',  year: '2020' },
-  { id: 12, name: 'Hide the Pain Harold',   flag: '😬', lat: 47.50,  lon: 19.04,   country: 'Hungary',year: '2011' },
-  { id: 13, name: 'Drakeposting',           flag: '🎵', lat: 43.65,  lon: -79.38,  country: 'Canada', year: '2015' },
-  { id: 14, name: 'Disaster Girl',          flag: '😈', lat: 35.23,  lon: -80.84,  country: 'USA',    year: '2005' },
-  { id: 15, name: 'Wojak',                  flag: '😢', lat: 52.23,  lon: 21.01,   country: 'Poland', year: '2010' },
-  { id: 16, name: 'Bernie Sanders Mittens', flag: '🧤', lat: 38.91,  lon: -77.05,  country: 'USA',    year: '2021' },
-  { id: 17, name: 'Cheems',                 flag: '🐶', lat: 22.30,  lon: 114.18,  country: 'HK',     year: '2017' },
-];
+import { MEMES } from '@/data/memes';
 
 function latLonToVec(lat, lon) {
-  const phi   = (90 - lat)   * (Math.PI / 180);
-  const theta = (lon + 180)  * (Math.PI / 180);
+  const phi   = (90 - lat)  * (Math.PI / 180);
+  const theta = (lon + 180) * (Math.PI / 180);
   return {
     x: -Math.sin(phi) * Math.cos(theta),
     y:  Math.cos(phi),
@@ -31,10 +12,28 @@ function latLonToVec(lat, lon) {
   };
 }
 
-// Klein Blue
-const KB = { r: 0, g: 47, b: 167 };          // #002FA7
+function computeHeat(lat, lon) {
+  const RADIUS = 28; // degrees of influence
+  let heat = 0;
+  for (const m of MEMES) {
+    const dist = Math.sqrt((lat - m.lat) ** 2 + (lon - m.lon) ** 2);
+    if (dist < RADIUS) heat += (1 - dist / RADIUS) ** 1.6;
+  }
+  return Math.min(heat, 6) / 6; // clamp & normalise
+}
 
-export default function MemeGlobe({ onMarkerClick, highlightId }) {
+function lerpRGB(r1,g1,b1, r2,g2,b2, t) {
+  return [
+    Math.round(r1 + (r2-r1)*t),
+    Math.round(g1 + (g2-g1)*t),
+    Math.round(b1 + (b2-b1)*t),
+  ];
+}
+
+// Klein Blue
+const KB = { r: 0, g: 47, b: 167 };
+
+export default function MemeGlobe({ onMarkerClick, highlightIds = [] }) {
   const canvasRef      = useRef(null);
   const rotRef         = useRef(0.4);          // Y-axis (longitude)
   const tiltRef        = useRef(0.0);          // X-axis tilt — unlimited, full 360°
@@ -71,7 +70,7 @@ export default function MemeGlobe({ onMarkerClick, highlightId }) {
           const py  = Math.floor(v * 255);
           const idx = (py * 512 + px) * 4;
           const br  = (data.data[idx] + data.data[idx+1] + data.data[idx+2]) / 3;
-          if (br < 128) pts.push({ lat, lon, isLand: true });
+          if (br < 128) pts.push({ lat, lon, isLand: true, heat: computeHeat(lat, lon) });
         }
       }
       dotsRef.current = pts;
@@ -111,10 +110,10 @@ export default function MemeGlobe({ onMarkerClick, highlightId }) {
         cx - R * 0.22, cy - R * 0.18, R * 0.02,
         cx + R * 0.08, cy + R * 0.08, R
       );
-      sphereGrad.addColorStop(0,   '#e8ecf8');
-      sphereGrad.addColorStop(0.3, '#d8deF0');
-      sphereGrad.addColorStop(0.7, '#c4cae6');
-      sphereGrad.addColorStop(1,   '#adb5de');
+      sphereGrad.addColorStop(0,   '#ffffff');
+      sphereGrad.addColorStop(0.3, '#fdfdfd');
+      sphereGrad.addColorStop(0.7, '#f4f6f9');
+      sphereGrad.addColorStop(1,   '#eaecf0');
       ctx.beginPath();
       ctx.arc(cx, cy, R, 0, Math.PI * 2);
       ctx.fillStyle = sphereGrad;
@@ -127,7 +126,7 @@ export default function MemeGlobe({ onMarkerClick, highlightId }) {
       const cosX  = Math.cos(tilt), sinX = Math.sin(tilt);
 
       if (dotsRef.current) {
-        for (const { lat, lon } of dotsRef.current) {
+        for (const { lat, lon, heat } of dotsRef.current) {
           const v   = latLonToVec(lat, lon);
           // Step 1: Y-axis rotation (longitude)
           const rx1 = v.x * cosY + v.z * sinY;
@@ -144,13 +143,16 @@ export default function MemeGlobe({ onMarkerClick, highlightId }) {
           const sy    = cy - ry * R;
 
           // Dot size varies with depth for 3-D feel
-          const dotR = 1.35 * (0.65 + 0.35 * alpha);
+          // Dot size varies with depth and heat
+          const dotR = (1.35 + (heat || 0) * 1.5) * (0.65 + 0.35 * alpha);
 
-          // Klein Blue, darkest at front, lighter near limb
+          // Klein Blue heatmap, darker at front, lighter near limb
+          const h = heat || 0;
+          const [r, g, b] = lerpRGB(200, 215, 245,  0, 47, 167,  h);
           const a = (0.45 + 0.55 * alpha).toFixed(2);
           ctx.beginPath();
           ctx.arc(sx, sy, dotR, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(${KB.r},${KB.g},${KB.b},${a})`;
+          ctx.fillStyle = `rgba(${r},${g},${b},${a})`;
           ctx.fill();
         }
       }
@@ -206,7 +208,7 @@ export default function MemeGlobe({ onMarkerClick, highlightId }) {
 
       projected.forEach(m => {
         if (m.alpha <= 0.01) return;
-        const isHl  = highlightId != null && highlightId === m.id;
+        const isHl  = highlightIds.includes(m.id);
         const isHov = hoveredId === m.id;
         const active = isHl || isHov;
 
@@ -382,7 +384,7 @@ export default function MemeGlobe({ onMarkerClick, highlightId }) {
       canvas.removeEventListener('touchend',   onTouchEnd);
       window.removeEventListener('mouseup',    onMouseUp);
     };
-  }, [dims, highlightId, onMarkerClick]);
+  }, [dims, highlightIds, onMarkerClick]);
 
   return (
     <canvas
