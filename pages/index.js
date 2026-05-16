@@ -128,7 +128,6 @@ export default function Home() {
             </div>
           )}
 
-
           {/* Upload card */}
           <div className="mt-4">
             <FileUploadCard

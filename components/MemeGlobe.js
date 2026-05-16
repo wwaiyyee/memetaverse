@@ -35,6 +35,7 @@ const KB = { r: 0, g: 47, b: 167 };
 
 export default function MemeGlobe({ onMarkerClick, highlightIds = [] }) {
   const canvasRef      = useRef(null);
+  const overlayRef     = useRef(null);
   const rotRef         = useRef(0.4);          // Y-axis (longitude)
   const tiltRef        = useRef(0.0);          // X-axis tilt — unlimited, full 360°
   const dragRef        = useRef({ dragging: false, lastX: 0, lastY: 0 });
@@ -212,52 +213,71 @@ export default function MemeGlobe({ onMarkerClick, highlightIds = [] }) {
         const isHov = hoveredId === m.id;
         const active = isHl || isHov;
 
-        const dotR = active ? 8 : 5.5;
+        const r = active ? 9 : 6;
+        
+        // Scale down slightly on the edges of the globe
+        const scale = 0.5 + m.alpha * 0.5;
+        const sr = r * scale;
 
         // Pulse rings
         if (active) {
           for (let p = 0; p < 3; p++) {
-            const phase = ((time * 1.6 + p * 0.33) % 1);
-            const pr    = dotR + phase * 24;
-            const po    = (1 - phase) * 0.35 * m.alpha;
+            const phase = ((time * 1.6 + p / 3) % 1);
             ctx.beginPath();
-            ctx.arc(m.sx, m.sy, pr, 0, Math.PI * 2);
-            ctx.strokeStyle = `rgba(0,47,167,${po})`;
-            ctx.lineWidth = 1.5;
+            ctx.arc(m.sx, m.sy, sr + phase * 22 * scale, 0, Math.PI * 2);
+            ctx.strokeStyle = `rgba(0,47,167,${(1-phase)*0.22*m.alpha})`;
+            ctx.lineWidth = 1.5 * scale;
             ctx.stroke();
           }
         }
 
-        // Glow halo
-        const glowR = dotR * (active ? 4.5 : 3);
-        const glow  = ctx.createRadialGradient(m.sx, m.sy, 0, m.sx, m.sy, glowR);
-        glow.addColorStop(0,   `rgba(0,47,167,${m.alpha * (active ? 0.25 : 0.12)})`);
-        glow.addColorStop(1,   'rgba(0,47,167,0)');
+        // Stem
         ctx.beginPath();
-        ctx.arc(m.sx, m.sy, glowR, 0, Math.PI * 2);
-        ctx.fillStyle = glow;
+        ctx.moveTo(m.sx, m.sy); 
+        ctx.lineTo(m.sx, m.sy + sr + 6 * scale);
+        ctx.strokeStyle = `rgba(0,47,167,${m.alpha})`;
+        ctx.lineWidth = 1.5 * scale;
+        ctx.stroke();
+
+        // Head shadow
+        ctx.beginPath();
+        ctx.arc(m.sx, m.sy, sr + 1.5 * scale, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(0,47,167,${0.15 * m.alpha})`;
         ctx.fill();
 
-        // Dot fill
+        // Head fill
         ctx.beginPath();
-        ctx.arc(m.sx, m.sy, dotR, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(0,47,167,${m.alpha * (active ? 1 : 0.9)})`;
+        ctx.arc(m.sx, m.sy, sr, 0, Math.PI * 2);
+        ctx.fillStyle = isHov ? `rgba(0,47,167,${m.alpha})` : `rgba(255,255,255,${m.alpha})`;
+        ctx.fill();
+        ctx.strokeStyle = `rgba(0,47,167,${m.alpha})`;
+        ctx.lineWidth = 2 * scale;
+        ctx.stroke();
+
+        // Inner dot
+        ctx.beginPath();
+        ctx.arc(m.sx, m.sy, sr * 0.35, 0, Math.PI * 2);
+        ctx.fillStyle = isHov ? `rgba(255,255,255,${m.alpha})` : `rgba(0,47,167,${m.alpha})`;
         ctx.fill();
 
-        // White center
-        ctx.beginPath();
-        ctx.arc(m.sx, m.sy, dotR * 0.38, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(255,255,255,${m.alpha * (active ? 1 : 0.8)})`;
-        ctx.fill();
+        // Emoji (only show if active/highlighted, hovered, or globally visible if needed. Let's show for active or hovered, or all if we want. We'll show for ALL, but fade by alpha)
+        if (m.alpha > 0.4) {
+           ctx.font = `${(isHov ? 18 : 14) * scale}px serif`;
+           ctx.textAlign = 'center';
+           ctx.textBaseline = 'bottom';
+           ctx.globalAlpha = m.alpha;
+           ctx.fillText(m.flag, m.sx, m.sy - sr - 3 * scale);
+           ctx.globalAlpha = 1.0;
+        }
 
         // Label on hover
         if (isHov && m.alpha > 0.3) {
-          const label = `${m.flag} ${m.name}`;
+          const label = m.name;
           const fs    = 12;
           ctx.font    = `500 ${fs}px -apple-system, 'Inter', sans-serif`;
           const tw    = ctx.measureText(label).width;
-          const px2   = 10, py2 = 5;
-          const lx    = m.sx + dotR + 10;
+          const px2   = 8, py2 = 4;
+          const lx    = m.sx + sr + 10;
           const ly    = m.sy - (fs / 2 + py2);
           const lw    = tw + px2 * 2;
           const lh    = fs + py2 * 2;
@@ -271,9 +291,31 @@ export default function MemeGlobe({ onMarkerClick, highlightIds = [] }) {
           ctx.stroke();
 
           ctx.fillStyle = 'rgba(0,47,167,1)';
-          ctx.fillText(label, lx + px2, ly + py2 + fs - 1);
+          ctx.textAlign = 'center';
+          ctx.fillText(label, lx + lw/2, ly + py2 + fs - 1);
         }
       });
+
+      // Update HTML Overlays
+      if (overlayRef.current) {
+        const children = overlayRef.current.children;
+        const projMap = {};
+        projected.forEach(m => projMap[m.id] = m);
+
+        for (let i = 0; i < children.length; i++) {
+          const el = children[i];
+          const id = el.getAttribute('data-id');
+          const p = projMap[id];
+          if (p && p.alpha > 0.1) {
+            el.style.display = 'block';
+            el.style.transform = `translate(${p.sx}px, ${p.sy}px)`;
+            el.style.opacity = p.alpha;
+            el.style.zIndex = Math.round(p.alpha * 100);
+          } else {
+            el.style.display = 'none';
+          }
+        }
+      }
 
       canvas.style.cursor = hoveredId ? 'pointer' : 'grab';
 
@@ -387,11 +429,79 @@ export default function MemeGlobe({ onMarkerClick, highlightIds = [] }) {
   }, [dims, highlightIds, onMarkerClick]);
 
   return (
-    <canvas
-      ref={canvasRef}
-      width={dims.w}
-      height={dims.h}
-      style={{ display: 'block', position: 'absolute', inset: 0 }}
-    />
+    <div style={{ position: 'absolute', inset: 0 }}>
+      <canvas
+        ref={canvasRef}
+        width={dims.w}
+        height={dims.h}
+        style={{ display: 'block', position: 'absolute', inset: 0 }}
+      />
+      <div ref={overlayRef} style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden' }}>
+        {MEMES.filter(m => highlightIds.includes(m.id)).map(meme => (
+          <div
+            key={meme.id}
+            data-id={meme.id}
+            style={{
+              position: 'absolute',
+              top: 0, left: 0,
+              willChange: 'transform, opacity',
+              pointerEvents: 'auto',
+              cursor: 'pointer'
+            }}
+            onClick={() => onMarkerClick && onMarkerClick(meme)}
+          >
+            {/* The widget popup */}
+            <div style={{
+              transform: 'translate(-50%, -100%)',
+              marginTop: '-20px', // hover above the pin
+              width: 160,
+              backgroundColor: '#ffffff',
+              borderRadius: '12px',
+              padding: '10px',
+              boxShadow: '0 8px 32px rgba(0,47,167,0.15), 0 2px 8px rgba(0,0,0,0.06)',
+              border: '1px solid rgba(0,47,167,0.15)',
+              fontFamily: "'Inter', sans-serif",
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              textAlign: 'center'
+            }}>
+              {/* Image thumbnail background style */}
+              <div style={{
+                width: '100%',
+                height: 80,
+                borderRadius: '8px',
+                backgroundImage: `url(${meme.image})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                marginBottom: '8px'
+              }} />
+              <div style={{ position: 'absolute', top: 14, left: 14, fontSize: '20px', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.4))' }}>
+                {meme.flag}
+              </div>
+              <h4 style={{ margin: '0 0 2px 0', fontSize: '13px', fontWeight: 600, color: '#1a1a2e', width: '100%', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {meme.name}
+              </h4>
+              <p style={{ margin: 0, fontSize: '10px', color: '#002FA7', fontWeight: 500, fontFamily: 'monospace' }}>
+                {meme.country} · {meme.year}
+              </p>
+              
+              {/* Triangle pointer pointing down */}
+              <div style={{
+                position: 'absolute',
+                bottom: -6,
+                left: '50%',
+                transform: 'translateX(-50%)',
+                width: 0, height: 0,
+                borderLeft: '6px solid transparent',
+                borderRight: '6px solid transparent',
+                borderTop: '6px solid #ffffff',
+                filter: 'drop-shadow(0 2px 2px rgba(0,47,167,0.1))'
+              }} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
