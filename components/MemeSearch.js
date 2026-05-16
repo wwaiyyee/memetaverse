@@ -32,12 +32,14 @@ export default function MemeSearch() {
   function handleSelect(meme) {
     setOpen(false);
     setQuery('');
-    router.push(`/meme/${meme.id}`);
+    router.push(`/explore/${meme.id}`);
   }
 
   function handleKeyDown(e) {
     if (e.key === 'Enter' && query.trim()) {
-      router.push(`/explore?q=${encodeURIComponent(query)}`);
+      if (results.length > 0) {
+        handleSelect(results[0]);
+      }
       setOpen(false);
     }
   }
