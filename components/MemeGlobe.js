@@ -270,30 +270,6 @@ export default function MemeGlobe({ onMarkerClick, highlightIds = [] }) {
            ctx.globalAlpha = 1.0;
         }
 
-        // Label on hover
-        if (isHov && m.alpha > 0.3) {
-          const label = m.name;
-          const fs    = 12;
-          ctx.font    = `500 ${fs}px -apple-system, 'Inter', sans-serif`;
-          const tw    = ctx.measureText(label).width;
-          const px2   = 8, py2 = 4;
-          const lx    = m.sx + sr + 10;
-          const ly    = m.sy - (fs / 2 + py2);
-          const lw    = tw + px2 * 2;
-          const lh    = fs + py2 * 2;
-
-          ctx.beginPath();
-          ctx.roundRect(lx, ly, lw, lh, 6);
-          ctx.fillStyle   = 'rgba(255,255,255,0.95)';
-          ctx.fill();
-          ctx.strokeStyle = 'rgba(0,47,167,0.25)';
-          ctx.lineWidth   = 1;
-          ctx.stroke();
-
-          ctx.fillStyle = 'rgba(0,47,167,1)';
-          ctx.textAlign = 'center';
-          ctx.fillText(label, lx + lw/2, ly + py2 + fs - 1);
-        }
       });
 
       // Update HTML Overlays
@@ -304,13 +280,16 @@ export default function MemeGlobe({ onMarkerClick, highlightIds = [] }) {
 
         for (let i = 0; i < children.length; i++) {
           const el = children[i];
-          const id = el.getAttribute('data-id');
+          const id = Number(el.getAttribute('data-id'));
           const p = projMap[id];
-          if (p && p.alpha > 0.1) {
+          const isHl = highlightIds.includes(id);
+          const isHov = hoveredId === id;
+
+          if (p && p.alpha > 0.1 && (isHl || isHov)) {
             el.style.display = 'block';
             el.style.transform = `translate(${p.sx}px, ${p.sy}px)`;
             el.style.opacity = p.alpha;
-            el.style.zIndex = Math.round(p.alpha * 100);
+            el.style.zIndex = Math.round(p.alpha * 100) + (isHov ? 1000 : 0);
           } else {
             el.style.display = 'none';
           }
@@ -437,7 +416,7 @@ export default function MemeGlobe({ onMarkerClick, highlightIds = [] }) {
         style={{ display: 'block', position: 'absolute', inset: 0 }}
       />
       <div ref={overlayRef} style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden' }}>
-        {MEMES.filter(m => highlightIds.includes(m.id)).map(meme => (
+        {MEMES.map(meme => (
           <div
             key={meme.id}
             data-id={meme.id}
@@ -446,57 +425,49 @@ export default function MemeGlobe({ onMarkerClick, highlightIds = [] }) {
               top: 0, left: 0,
               willChange: 'transform, opacity',
               pointerEvents: 'auto',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              display: 'none'
             }}
             onClick={() => onMarkerClick && onMarkerClick(meme)}
           >
-            {/* The widget popup */}
+            {/* The widget popup matching the mockup */}
             <div style={{
               transform: 'translate(-50%, -100%)',
-              marginTop: '-20px', // hover above the pin
-              width: 160,
+              marginTop: '-14px', // hover above the pin
+              width: 140,
               backgroundColor: '#ffffff',
-              borderRadius: '12px',
-              padding: '10px',
-              boxShadow: '0 8px 32px rgba(0,47,167,0.15), 0 2px 8px rgba(0,0,0,0.06)',
-              border: '1px solid rgba(0,47,167,0.15)',
+              borderRadius: '16px',
+              padding: '16px',
+              boxShadow: '0 12px 48px rgba(0,47,167,0.18), 0 4px 12px rgba(0,0,0,0.06)',
+              border: '1px solid rgba(0,47,167,0.06)',
               fontFamily: "'Inter', sans-serif",
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              textAlign: 'center'
+              textAlign: 'center',
+              position: 'relative'
             }}>
-              {/* Image thumbnail background style */}
-              <div style={{
-                width: '100%',
-                height: 80,
-                borderRadius: '8px',
-                backgroundImage: `url(${meme.image})`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                marginBottom: '8px'
-              }} />
-              <div style={{ position: 'absolute', top: 14, left: 14, fontSize: '20px', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.4))' }}>
+              <div style={{ position: 'absolute', top: 12, left: 12, fontSize: '18px' }}>
                 {meme.flag}
               </div>
-              <h4 style={{ margin: '0 0 2px 0', fontSize: '13px', fontWeight: 600, color: '#1a1a2e', width: '100%', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <h4 style={{ margin: '14px 0 4px 0', fontSize: '14px', fontWeight: 600, color: '#1a1a2e', width: '100%', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {meme.name}
               </h4>
-              <p style={{ margin: 0, fontSize: '10px', color: '#002FA7', fontWeight: 500, fontFamily: 'monospace' }}>
+              <p style={{ margin: 0, fontSize: '11px', color: '#002FA7', fontWeight: 500, fontFamily: 'monospace' }}>
                 {meme.country} · {meme.year}
               </p>
               
               {/* Triangle pointer pointing down */}
               <div style={{
                 position: 'absolute',
-                bottom: -6,
+                bottom: -8,
                 left: '50%',
                 transform: 'translateX(-50%)',
                 width: 0, height: 0,
-                borderLeft: '6px solid transparent',
-                borderRight: '6px solid transparent',
-                borderTop: '6px solid #ffffff',
-                filter: 'drop-shadow(0 2px 2px rgba(0,47,167,0.1))'
+                borderLeft: '8px solid transparent',
+                borderRight: '8px solid transparent',
+                borderTop: '8px solid #ffffff',
+                filter: 'drop-shadow(0 2px 2px rgba(0,47,167,0.08))'
               }} />
             </div>
           </div>

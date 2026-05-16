@@ -139,30 +139,56 @@ export default function Home() {
         </div>
 
         {/* ── Globe marker detail card ── */}
-        {activeMeme && !isSearching && (
+        {/* ── Right Panel (Detail Card or Trending) ── */}
+        {!isSearching && (
           <div className={styles.rightPanel}>
-            <div className={styles.memeCard}>
-              <div className={styles.memeCardTop} />
-              <button className={styles.closeBtn} onClick={handleClose} aria-label="close">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <path d="M18 6 6 18M6 6l12 12"/>
-                </svg>
-              </button>
-              <div className={styles.memeIcon}>{activeMeme.flag}</div>
-              <div className={styles.memeMeta}>
-                <div className={styles.memeMetaLabel}>{activeMeme.country} · {activeMeme.year}</div>
-                <h2 className={styles.memeName}>{activeMeme.name}</h2>
+            {activeMeme ? (
+              <div className={styles.memeCard}>
+                <div className={styles.memeCardTop} />
+                <button className={styles.closeBtn} onClick={handleClose} aria-label="close">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <path d="M18 6 6 18M6 6l12 12"/>
+                  </svg>
+                </button>
+                <div className={styles.memeIcon}>{activeMeme.flag}</div>
+                <div className={styles.memeMeta}>
+                  <div className={styles.memeMetaLabel}>{activeMeme.country} · {activeMeme.year}</div>
+                  <h2 className={styles.memeName}>{activeMeme.name}</h2>
+                </div>
+                <p className={styles.memeDesc}>
+                  {activeMeme.desc || 'Click a marker to explore this meme\'s origin.'}
+                </p>
+                <Link href={`/explore?q=${encodeURIComponent(activeMeme.name)}`} className={styles.memeLink}>
+                  full story
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <path d="M5 12h14M12 5l7 7-7 7"/>
+                  </svg>
+                </Link>
               </div>
-              <p className={styles.memeDesc}>
-                {activeMeme.desc || 'Click a marker to explore this meme\'s origin.'}
-              </p>
-              <Link href={`/explore?q=${encodeURIComponent(activeMeme.name)}`} className={styles.memeLink}>
-                full story
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <path d="M5 12h14M12 5l7 7-7 7"/>
-                </svg>
-              </Link>
-            </div>
+            ) : (
+              <div className={styles.ticker}>
+                <div className={styles.tickerHeader}>
+                  <div className={styles.tickerLive} />
+                  trending atlas
+                </div>
+                <ul className={styles.tickerList}>
+                  {MEMES.slice(0, 5).map((meme, idx) => (
+                    <li
+                      key={meme.id}
+                      className={styles.tickerItem}
+                      style={{ animationDelay: `${idx * 0.05}s`, cursor: 'pointer' }}
+                      onClick={() => handleGlobeClick(meme)}
+                    >
+                      <div className={styles.tickerDot} />
+                      <div className={styles.tickerFlag}>{meme.flag}</div>
+                      <div className={styles.tickerName}>{meme.name}</div>
+                      <div className={styles.tickerCountry}>{meme.country}</div>
+                      <div className={styles.tickerYear}>{meme.year}</div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         )}
 
