@@ -18,9 +18,9 @@ export default function ConnectWallet() {
     <button
       onClick={handleConnect}
       disabled={loading}
-      className="flex items-center gap-2 px-5 py-2 rounded-full bg-[#1e1a2e] border border-purple-500/40 text-sm text-white hover:bg-[#2a2045] hover:border-purple-400/60 transition-colors disabled:opacity-50"
+      className="flex items-center gap-2 px-5 py-2 rounded-full border border-[#002FA7]/30 text-sm text-[#002FA7] hover:bg-[#002FA7] hover:text-white transition-colors disabled:opacity-50"
     >
-      <span className="w-2 h-2 rounded-full bg-purple-400 inline-block" />
+      <span className="w-2 h-2 rounded-full bg-[#002FA7] inline-block" />
       {loading ? 'connecting...' : connected ? `${address.slice(0, 6)}...${address.slice(-4)}` : 'connect wallet'}
     </button>
   );
