@@ -37,9 +37,9 @@ export default function Home() {
 
       {/* ── Navbar ── */}
       <nav className={styles.nav}>
-        <Link href="/" className={styles.logo}>
-          <span className={styles.logoText}>meme</span>
-          <span className={styles.logoAccent}>sphere</span>
+        <Link href="/" className={styles.logo} style={{ alignItems: 'baseline' }}>
+          <span style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: '22px', color: '#002FA7', letterSpacing: '-0.5px' }}>meme</span>
+          <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: '20px', color: '#1a1a2e', letterSpacing: '-0.3px' }}>taverse</span>
         </Link>
 
         <div className={styles.navLinks}>
