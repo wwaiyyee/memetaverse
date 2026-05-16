@@ -7,13 +7,16 @@ export default function Explore() {
   const { q } = router.query;
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     if (!q) return;
     setLoading(true);
+    setError(null);
     fetch(`/api/memes/search?q=${encodeURIComponent(q)}`)
       .then(r => r.json())
       .then(d => setResults(d.results || []))
+      .catch(() => setError('search failed — please try again'))
       .finally(() => setLoading(false));
   }, [q]);
 
@@ -25,6 +28,7 @@ export default function Explore() {
         <p className="text-white/40 text-sm mb-8">browse the meme archive</p>
 
         {loading && <p className="text-white/30 text-sm">searching...</p>}
+        {error && <p className="text-red-400/70 text-sm">{error}</p>}
         {results.length > 0 && (
           <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {results.map(m => (

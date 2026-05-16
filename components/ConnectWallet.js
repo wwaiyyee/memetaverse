@@ -1,24 +1,14 @@
 import { useState } from 'react';
+import { useWallet } from '@/context/WalletContext';
 
 export default function ConnectWallet() {
-  const [connected, setConnected] = useState(false);
-  const [address, setAddress] = useState('');
+  const { connected, address, connect } = useWallet();
   const [loading, setLoading] = useState(false);
 
   async function handleConnect() {
-    if (connected) return;
     setLoading(true);
     try {
-      // Hook: replace with real wallet provider (e.g. wagmi, ethers, monad wallet)
-      if (typeof window.ethereum !== 'undefined') {
-        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-        setAddress(accounts[0]);
-        setConnected(true);
-      } else {
-        alert('No wallet detected. Install MetaMask or a Monad-compatible wallet.');
-      }
-    } catch (err) {
-      console.error('Wallet connect error:', err);
+      await connect();
     } finally {
       setLoading(false);
     }

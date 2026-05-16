@@ -1,17 +1,26 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/router';
 
 export default function MemeDropZone() {
   const [dragging, setDragging] = useState(false);
   const [preview, setPreview] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [noMatch, setNoMatch] = useState(false);
   const inputRef = useRef(null);
+  const previewUrlRef = useRef(null);
   const router = useRouter();
+
+  useEffect(() => {
+    return () => { if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current); };
+  }, []);
 
   const handleFile = useCallback(async (file) => {
     if (!file || !file.type.startsWith('image/')) return;
+    if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
     const url = URL.createObjectURL(file);
+    previewUrlRef.current = url;
     setPreview(url);
+    setNoMatch(false);
     setLoading(true);
 
     try {
@@ -20,7 +29,11 @@ export default function MemeDropZone() {
       // Backend hook: POST /api/memes/identify
       const res = await fetch('/api/memes/identify', { method: 'POST', body: formData });
       const data = await res.json();
-      if (data.id) router.push(`/meme/${data.id}`);
+      if (data.id) {
+        router.push(`/meme/${data.id}`);
+      } else {
+        setNoMatch(true);
+      }
     } catch (err) {
       console.error('Identify error:', err);
     } finally {
@@ -62,14 +75,16 @@ export default function MemeDropZone() {
       />
 
       {preview ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={preview} alt="preview" className="max-h-24 rounded-lg object-contain opacity-80" />
+        <>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={preview} alt="preview" className="max-h-24 rounded-lg object-contain opacity-80" />
+          {loading && <span className="text-sm text-white/40">identifying...</span>}
+          {noMatch && <span className="text-sm text-red-400/70">could not identify meme</span>}
+        </>
       ) : (
         <>
           <UploadIcon />
-          <span className="text-sm text-white/40">
-            {loading ? 'identifying...' : 'drop image or sticker here'}
-          </span>
+          <span className="text-sm text-white/40">drop image or sticker here</span>
         </>
       )}
     </div>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/router';
 
 export default function MemeSearch() {
@@ -6,20 +6,24 @@ export default function MemeSearch() {
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
+  const abortRef = useRef(null);
   const router = useRouter();
 
   async function handleSearch(value) {
     setQuery(value);
     if (!value.trim()) { setResults([]); setOpen(false); return; }
+    if (abortRef.current) abortRef.current.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
     setLoading(true);
     setOpen(true);
     try {
       // Backend hook: GET /api/memes/search?q=
-      const res = await fetch(`/api/memes/search?q=${encodeURIComponent(value)}`);
+      const res = await fetch(`/api/memes/search?q=${encodeURIComponent(value)}`, { signal: controller.signal });
       const data = await res.json();
       setResults(data.results || []);
     } catch (err) {
-      console.error('Search error:', err);
+      if (err.name !== 'AbortError') console.error('Search error:', err);
     } finally {
       setLoading(false);
     }
