@@ -23,9 +23,14 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'No file received' });
   }
 
-  // Extract optional metadata fields
+  // Extract metadata fields matching MemeRegistry contract
+  const title = fields.title?.[0] || '';
   const description = fields.description?.[0] || '';
   const country = fields.country?.[0] || '';
+  const category = fields.category?.[0] || '';
+  const originDate = fields.originDate?.[0] || '';
+  const latitude = fields.latitude?.[0] || '0';
+  const longitude = fields.longitude?.[0] || '0';
   const timestamp = fields.timestamp?.[0] || new Date().toISOString();
 
   try {
@@ -36,10 +41,15 @@ export default async function handler(req, res) {
     const pinataForm = new FormData(); // Node 18+ global
     pinataForm.append('file', blob, uploaded.originalFilename || 'upload');
     pinataForm.append('pinataMetadata', JSON.stringify({
-      name: uploaded.originalFilename || 'upload',
+      name: title || uploaded.originalFilename || 'upload',
       keyvalues: {
+        title,
         description,
         country,
+        category,
+        originDate,
+        latitude,
+        longitude,
         timestamp,
       },
     }));
@@ -66,8 +76,13 @@ export default async function handler(req, res) {
       cid: data.IpfsHash,
       name: uploaded.originalFilename || 'upload',
       size: data.PinSize,
+      title,
       description,
       country,
+      category,
+      originDate,
+      latitude,
+      longitude,
       timestamp,
     });
   } catch (err) {

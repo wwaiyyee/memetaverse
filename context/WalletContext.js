@@ -11,8 +11,18 @@ export function WalletProvider({ children }) {
     if (typeof window.ethereum !== 'undefined') {
       try {
         const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        
+        // Initialize ethers provider and signer
+        const { BrowserProvider } = await import('ethers');
+        const provider = new BrowserProvider(window.ethereum);
+        const signer = await provider.getSigner();
+
         setAddress(accounts[0]);
         setConnected(true);
+        // Expose provider and signer globally or simply know they are available when connected
+        window.provider = provider;
+        window.signer = signer;
+
       } catch (err) {
         console.error('Wallet connect error:', err);
       }
