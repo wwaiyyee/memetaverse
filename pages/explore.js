@@ -74,11 +74,11 @@ export default function Explore() {
         {/* Header Section */}
         <div className={styles.header}>
           <h1 className={styles.title}>
-            {meme.name}:<br />The Internet Phenomenon
+            {meme.name}
           </h1>
 
           <p className={styles.subtitle}>
-            "{meme.desc} Learn about its origins, cultural impact, and why it became a global standard."
+            {meme.desc}
           </p>
         </div>
 
@@ -142,14 +142,6 @@ export default function Explore() {
                 </p>
               </div>
             )}
-
-            {/* Footer */}
-            <div className={styles.footer} style={{ marginTop: '3rem' }}>
-              <p className={styles.footerLabel}>Registered on</p>
-              <p className={styles.footerName}>
-                Monad Testnet Meme Registry
-              </p>
-            </div>
           </article>
         </div>
       </main>
