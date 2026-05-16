@@ -213,7 +213,7 @@ export default function MemeGlobe({ onMarkerClick, highlightIds = [], allMemes =
         const isHov = hoveredId === m.id;
         const active = isHl || isHov;
 
-        const r = active ? 9 : 6;
+        const r = active ? 14 : 10;
         
         // Scale down slightly on the edges of the globe
         const scale = 0.5 + m.alpha * 0.5;
@@ -260,9 +260,9 @@ export default function MemeGlobe({ onMarkerClick, highlightIds = [], allMemes =
         ctx.fillStyle = isHov ? `rgba(255,255,255,${m.alpha})` : `rgba(0,47,167,${m.alpha})`;
         ctx.fill();
 
-        // Emoji (only show if active/highlighted, hovered, or globally visible if needed. Let's show for active or hovered, or all if we want. We'll show for ALL, but fade by alpha)
+        // Emoji (only show if active/highlighted, hovered, or globally visible if needed. Let's show for ALL, but fade by alpha)
         if (m.alpha > 0.4) {
-           ctx.font = `${(isHov ? 18 : 14) * scale}px serif`;
+           ctx.font = `${(isHov ? 24 : 18) * scale}px serif`;
            ctx.textAlign = 'center';
            ctx.textBaseline = 'bottom';
            ctx.globalAlpha = m.alpha;
