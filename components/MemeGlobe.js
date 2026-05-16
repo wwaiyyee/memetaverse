@@ -12,10 +12,10 @@ function latLonToVec(lat, lon) {
   };
 }
 
-function computeHeat(lat, lon) {
+function computeHeat(lat, lon, allMemes = MEMES) {
   const RADIUS = 28; // degrees of influence
   let heat = 0;
-  for (const m of MEMES) {
+  for (const m of allMemes) {
     const dist = Math.sqrt((lat - m.lat) ** 2 + (lon - m.lon) ** 2);
     if (dist < RADIUS) heat += (1 - dist / RADIUS) ** 1.6;
   }
@@ -33,7 +33,7 @@ function lerpRGB(r1,g1,b1, r2,g2,b2, t) {
 // Klein Blue
 const KB = { r: 0, g: 47, b: 167 };
 
-export default function MemeGlobe({ onMarkerClick, highlightIds = [] }) {
+export default function MemeGlobe({ onMarkerClick, highlightIds = [], allMemes = MEMES }) {
   const canvasRef      = useRef(null);
   const overlayRef     = useRef(null);
   const rotRef         = useRef(0.4);          // Y-axis (longitude)
@@ -71,7 +71,7 @@ export default function MemeGlobe({ onMarkerClick, highlightIds = [] }) {
           const py  = Math.floor(v * 255);
           const idx = (py * 512 + px) * 4;
           const br  = (data.data[idx] + data.data[idx+1] + data.data[idx+2]) / 3;
-          if (br < 128) pts.push({ lat, lon, isLand: true, heat: computeHeat(lat, lon) });
+          if (br < 128) pts.push({ lat, lon, isLand: true, heat: computeHeat(lat, lon, allMemes) });
         }
       }
       dotsRef.current = pts;
@@ -184,7 +184,7 @@ export default function MemeGlobe({ onMarkerClick, highlightIds = [] }) {
 
       // ── Meme markers ──
       hoveredId = null;
-      const projected = MEMES.map(meme => {
+      const projected = allMemes.map(meme => {
         const v   = latLonToVec(meme.lat, meme.lon);
         // Y-axis then X-axis
         const rx1 = v.x * cosY + v.z * sinY;
@@ -276,14 +276,14 @@ export default function MemeGlobe({ onMarkerClick, highlightIds = [] }) {
       if (overlayRef.current) {
         const children = overlayRef.current.children;
         const projMap = {};
-        projected.forEach(m => projMap[m.id] = m);
+        projected.forEach(m => projMap[String(m.id)] = m);
 
         for (let i = 0; i < children.length; i++) {
           const el = children[i];
-          const id = Number(el.getAttribute('data-id'));
-          const p = projMap[id];
-          const isHl = highlightIds.includes(id);
-          const isHov = hoveredId === id;
+          const idStr = el.getAttribute('data-id');
+          const p = projMap[idStr];
+          const isHl = highlightIds.some(h => String(h) === idStr);
+          const isHov = String(hoveredId) === idStr;
 
           if (p && p.alpha > 0.1 && (isHl || isHov)) {
             el.style.display = 'block';
@@ -368,8 +368,8 @@ export default function MemeGlobe({ onMarkerClick, highlightIds = [] }) {
       const cr    = BASE_R * zoomRef.current;
       const cosY2 = Math.cos(rotRef.current),  sinY2 = Math.sin(rotRef.current);
       const cosX2 = Math.cos(tiltRef.current), sinX2 = Math.sin(tiltRef.current);
-      for (let i = MEMES.length - 1; i >= 0; i--) {
-        const m   = MEMES[i];
+      for (let i = allMemes.length - 1; i >= 0; i--) {
+        const m   = allMemes[i];
         const v   = latLonToVec(m.lat, m.lon);
         const rx1 = v.x * cosY2 + v.z * sinY2;
         const rz1 = -v.x * sinY2 + v.z * cosY2;
@@ -416,7 +416,7 @@ export default function MemeGlobe({ onMarkerClick, highlightIds = [] }) {
         style={{ display: 'block', position: 'absolute', inset: 0 }}
       />
       <div ref={overlayRef} style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden' }}>
-        {MEMES.map(meme => (
+        {allMemes.map(meme => (
           <div
             key={meme.id}
             data-id={meme.id}

@@ -1,0 +1,49 @@
+{
+  "_format": "hh3-sol-build-info-1",
+  "id": "solc-0_8_28-a16de01f7a067f67c8f172e6fb429d36548dbd61",
+  "solcVersion": "0.8.28",
+  "solcLongVersion": "0.8.28+commit.7893614a",
+  "compilerType": "solc",
+  "toolVersions": {
+    "hardhat": "3.4.5"
+  },
+  "userSourceNameMap": {
+    "contracts/MemeRegistry.sol": "project/contracts/MemeRegistry.sol"
+  },
+  "input": {
+    "language": "Solidity",
+    "settings": {
+      "evmVersion": "cancun",
+      "optimizer": {
+        "enabled": true,
+        "runs": 200
+      },
+      "outputSelection": {
+        "*": {
+          "": [
+            "ast"
+          ],
+          "*": [
+            "abi",
+            "evm.bytecode.linkReferences",
+            "evm.bytecode.object",
+            "evm.bytecode.opcodes",
+            "evm.bytecode.sourceMap",
+            "evm.deployedBytecode.immutableReferences",
+            "evm.deployedBytecode.linkReferences",
+            "evm.deployedBytecode.object",
+            "evm.deployedBytecode.opcodes",
+            "evm.deployedBytecode.sourceMap",
+            "evm.methodIdentifiers"
+          ]
+        }
+      },
+      "remappings": []
+    },
+    "sources": {
+      "project/contracts/MemeRegistry.sol": {
+        "content": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.28;\n\ncontract MemeRegistry {\n\n    uint256 private nextId = 1;\n\n    struct Meme {\n        uint256 id;\n        string title;\n        string cid;          // IPFS hash from Pinata\n        string description;  // origin story / explanation\n        string country;\n        string category;\n        string originDate;\n        int256 latitude;\n        int256 longitude;\n        address uploader;\n        uint256 createdAt;\n    }\n\n    mapping(uint256 => Meme) private memes;\n    uint256[] private memeIds;\n\n    // =========================\n    // EVENTS\n    // =========================\n    event MemeCreated(\n        uint256 indexed id,\n        string title,\n        string cid,\n        address indexed uploader\n    );\n\n    // =========================\n    // CREATE MEME (WRITE)\n    // =========================\n    function createMeme(\n        string memory _title,\n        string memory _cid,\n        string memory _description,\n        string memory _country,\n        string memory _category,\n        string memory _originDate,\n        int256 _latitude,\n        int256 _longitude\n    ) external returns (uint256) {\n\n        uint256 memeId = nextId++;\n\n        memes[memeId] = Meme({\n            id: memeId,\n            title: _title,\n            cid: _cid,\n            description: _description,\n            country: _country,\n            category: _category,\n            originDate: _originDate,\n            latitude: _latitude,\n            longitude: _longitude,\n            uploader: msg.sender,\n            createdAt: block.timestamp\n        });\n\n        memeIds.push(memeId);\n\n        emit MemeCreated(memeId, _title, _cid, msg.sender);\n\n        return memeId;\n    }\n\n    // =========================\n    // GET SINGLE MEME\n    // =========================\n    function getMeme(uint256 _id)\n        external\n        view\n        returns (Meme memory)\n    {\n        require(_id > 0 && _id < nextId, \"Meme does not exist\");\n        return memes[_id];\n    }\n\n    // =========================\n    // GET ALL MEMES (FOR MAP)\n    // =========================\n    function getAllMemes()\n        external\n        view\n        returns (Meme[] memory)\n    {\n        Meme[] memory allMemes = new Meme[](memeIds.length);\n\n        for (uint256 i = 0; i < memeIds.length; i++) {\n            allMemes[i] = memes[memeIds[i]];\n        }\n\n        return allMemes;\n    }\n\n    // =========================\n    // TOTAL COUNT\n    // =========================\n    function getTotalMemes()\n        external\n        view\n        returns (uint256)\n    {\n        return memeIds.length;\n    }\n}\n"
+      }
+    }
+  }
+}

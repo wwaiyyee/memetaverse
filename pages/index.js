@@ -1,28 +1,41 @@
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import ConnectWallet from '@/components/ConnectWallet';
 import { MEMES } from '@/data/memes';
 import { FileUploadCard } from '@/components/FileUploadCard';
 import styles from './index.module.css';
+import { ethers } from 'ethers';
+import { MEME_REGISTRY_ADDRESS, MEME_REGISTRY_ABI } from '@/lib/contract';
+import { useWriteContract, usePublicClient } from 'wagmi';
+import { parseAbi } from 'viem';
 
 const MemeGlobe = dynamic(() => import('@/components/MemeGlobe'), { ssr: false });
 
 export default function Home() {
+  const { writeContractAsync } = useWriteContract();
+  const publicClient = usePublicClient();
+
   const [query, setQuery]         = useState('');
   const [activeMeme, setActiveMeme] = useState(null);
   const [uploadFiles, setUploadFiles] = useState([]);
+  const [onChainMemes, setOnChainMemes] = useState([]);
 
   const isSearching = query.trim().length > 0;
+
+  // Combine static and on-chain memes, prioritizing on-chain so they show in trending
+  const allMemes = useMemo(() => {
+    return [...onChainMemes.reverse(), ...MEMES];
+  }, [onChainMemes]);
 
   // Filter memes by name or country
   const results = useMemo(() => {
     if (!isSearching) return [];
     const q = query.toLowerCase();
-    return MEMES.filter(
+    return allMemes.filter(
       m => m.name.toLowerCase().includes(q) || m.country.toLowerCase().includes(q)
     );
-  }, [query, isSearching]);
+  }, [query, isSearching, allMemes]);
 
   const highlightIds = useMemo(() =>
     activeMeme ? [activeMeme.id] : results.map(r => r.id),
@@ -43,38 +56,113 @@ export default function Home() {
     setActiveMeme(null);
   }, []);
 
-  const handleFilesChange = useCallback((newFiles) => {
-    setUploadFiles((prev) => [
-      ...prev,
-      ...newFiles.map(file => ({
-        id: Math.random().toString(36).substring(7),
-        file,
-        progress: 0,
-        status: 'uploading'
-      }))
-    ]);
+  // ── Real upload handlers ──
+  const handleFilesChange = useCallback((newFiles, newEntries, entryId, progress, status) => {
+    // Case 1: Progress update for an existing file entry
+    if (entryId != null) {
+      setUploadFiles(prev =>
+        prev.map(f =>
+          f.id === entryId
+            ? { ...f, progress: progress ?? f.progress, status: status ?? f.status }
+            : f
+        )
+      );
+      return;
+    }
 
-    // Simulate upload progress
-    newFiles.forEach((_, idx) => {
-      let progress = 0;
-      const interval = setInterval(() => {
-        progress += 10;
-        setUploadFiles(current => {
-          const newFilesArray = [...current];
-          const fileToUpdate = newFilesArray[newFilesArray.length - newFiles.length + idx];
-          if (fileToUpdate) {
-             fileToUpdate.progress = progress;
-             if (progress >= 100) fileToUpdate.status = 'completed';
-          }
-          return newFilesArray;
-        });
-        if (progress >= 100) clearInterval(interval);
-      }, 200);
-    });
+    // Case 2: Adding new file entries
+    if (newEntries && newEntries.length > 0) {
+      setUploadFiles(prev => [...prev, ...newEntries]);
+    }
   }, []);
 
   const handleFileRemove = useCallback((id) => {
     setUploadFiles(prev => prev.filter(f => f.id !== id));
+  }, []);
+
+  const handleUploadComplete = useCallback(async (result) => {
+    // Update the file entry with the CID from Pinata
+    setUploadFiles(prev =>
+      prev.map(f =>
+        f.id === result.fileEntryId
+          ? { ...f, cid: result.cid, status: 'completed', progress: 100 }
+          : f
+      )
+    );
+    console.log('Uploaded to IPFS:', result.cid);
+
+    // Write to smart contract
+    try {
+      const latInt = Math.round(parseFloat(result.latitude || 0) * 10000);
+      const lngInt = Math.round(parseFloat(result.longitude || 0) * 10000);
+
+      console.log("Sending transaction to Monad Testnet...");
+      const hash = await writeContractAsync({
+        address: MEME_REGISTRY_ADDRESS,
+        abi: parseAbi([
+          'function createMeme(string _title, string _cid, string _description, string _country, string _category, string _originDate, int256 _latitude, int256 _longitude) external returns (uint256)'
+        ]),
+        functionName: 'createMeme',
+        args: [
+          result.title || "Untitled",
+          result.cid,
+          result.description || "",
+          result.country || "Unknown",
+          result.category || "Other",
+          result.originDate || new Date().getFullYear().toString(),
+          latInt,
+          lngInt
+        ],
+      });
+
+      console.log("Transaction sent! Hash:", hash);
+      if (publicClient) {
+        await publicClient.waitForTransactionReceipt({ hash });
+      }
+      console.log("Transaction confirmed on Monad!");
+      
+      // Refresh on-chain memes
+      fetchOnChainMemes();
+    } catch (err) {
+      console.error("Error writing to smart contract:", err);
+      alert("Failed to save meme on-chain: " + (err.message || err));
+    }
+  }, [writeContractAsync, publicClient]);
+
+  const fetchOnChainMemes = async () => {
+    try {
+      // ALWAYS use a fixed RPC provider for reading data so the map works
+      // regardless of what network the user's MetaMask is currently connected to.
+      const rpcUrl = process.env.NEXT_PUBLIC_MONAD_RPC_URL || "https://monad-testnet.g.alchemy.com/v2/EuLqamhK_5ymLb8952SSc";
+      const provider = new ethers.JsonRpcProvider(rpcUrl);
+
+      const contract = new ethers.Contract(MEME_REGISTRY_ADDRESS, MEME_REGISTRY_ABI, provider);
+      const data = await contract.getAllMemes();
+      
+      const formattedMemes = data.map(m => ({
+        id: "chain-" + m.id.toString(),
+        name: m.title,
+        flag: '🌍', // default flag for on-chain
+        lat: Number(m.latitude) / 10000,
+        lon: Number(m.longitude) / 10000,
+        country: m.country,
+        year: m.originDate,
+        desc: m.description,
+        cid: m.cid,
+        image: `https://teal-certain-salamander-344.mypinata.cloud/ipfs/${m.cid}`,
+        uploader: m.uploader,
+        category: m.category
+      }));
+
+      setOnChainMemes(formattedMemes);
+      console.log("Fetched on-chain memes:", formattedMemes.length);
+    } catch (err) {
+      console.error("Error fetching on-chain memes:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchOnChainMemes();
   }, []);
 
   return (
@@ -94,7 +182,7 @@ export default function Home() {
 
         {/* Globe (always visible) */}
         <div className={styles.globeWrap}>
-          <MemeGlobe onMarkerClick={handleGlobeClick} highlightIds={highlightIds} />
+          <MemeGlobe onMarkerClick={handleGlobeClick} highlightIds={highlightIds} allMemes={allMemes} />
         </div>
 
         {/* ── Search bar — always visible ── */}
@@ -134,6 +222,7 @@ export default function Home() {
               files={uploadFiles}
               onFilesChange={handleFilesChange}
               onFileRemove={handleFileRemove}
+              onUploadComplete={handleUploadComplete}
             />
           </div>
         </div>
@@ -172,7 +261,7 @@ export default function Home() {
                   trending atlas
                 </div>
                 <ul className={styles.tickerList}>
-                  {MEMES.slice(0, 5).map((meme, idx) => (
+                  {allMemes.slice(0, 5).map((meme, idx) => (
                     <li
                       key={meme.id}
                       className={styles.tickerItem}

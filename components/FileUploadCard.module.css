@@ -263,3 +263,196 @@
 .deleteIcon {
   width: 1rem; height: 1rem;
 }
+
+/* ─── Metadata Form ─── */
+.metadataForm {
+  margin-top: 1.25rem;
+  overflow: hidden;
+}
+
+.selectedFilePreview {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.selectedFileItem {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.5rem 0.75rem;
+  background-color: rgba(0, 47, 167, 0.04);
+  border: 1px solid rgba(0, 47, 167, 0.1);
+  border-radius: 0.5rem;
+}
+
+.selectedFileName {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #1a1a2e;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.selectedFileSize {
+  font-size: 0.6875rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  color: rgba(26, 26, 46, 0.45);
+  flex-shrink: 0;
+}
+
+.formGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+.formField {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+}
+
+.formRow {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.formLabel {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: rgba(26, 26, 46, 0.55);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.formInput {
+  padding: 0.5rem 0.625rem;
+  font-size: 0.8125rem;
+  border: 1px solid rgba(0, 47, 167, 0.15);
+  border-radius: 0.375rem;
+  background-color: rgba(255, 255, 255, 0.7);
+  color: #1a1a2e;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  font-family: inherit;
+  width: 100%;
+  box-sizing: border-box;
+}
+.formInput:focus {
+  border-color: #002FA7;
+  box-shadow: 0 0 0 2px rgba(0, 47, 167, 0.1);
+}
+.formInput:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.formTextarea {
+  padding: 0.5rem 0.625rem;
+  font-size: 0.8125rem;
+  border: 1px solid rgba(0, 47, 167, 0.15);
+  border-radius: 0.375rem;
+  background-color: rgba(255, 255, 255, 0.7);
+  color: #1a1a2e;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 3rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+.formTextarea:focus {
+  border-color: #002FA7;
+  box-shadow: 0 0 0 2px rgba(0, 47, 167, 0.1);
+}
+.formTextarea:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.formActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.625rem;
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(0, 47, 167, 0.08);
+}
+
+.cancelBtn {
+  padding: 0.5rem 1rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: 0.375rem;
+  border: 1px solid rgba(0, 47, 167, 0.15);
+  background: rgba(255, 255, 255, 0.5);
+  color: rgba(26, 26, 46, 0.6);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.cancelBtn:hover {
+  background: rgba(255, 255, 255, 0.8);
+  color: #1a1a2e;
+}
+.cancelBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.submitBtn {
+  padding: 0.5rem 1.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 0.375rem;
+  border: none;
+  background: #002FA7;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+.submitBtn:hover {
+  background: #0038cc;
+  box-shadow: 0 2px 8px rgba(0, 47, 167, 0.3);
+}
+.submitBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.errorMsg {
+  margin-top: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.75rem;
+  color: #dc2626;
+  background-color: rgba(239, 68, 68, 0.06);
+  border: 1px solid rgba(239, 68, 68, 0.15);
+  border-radius: 0.375rem;
+}
+
+.spinnerIcon {
+  width: 0.875rem;
+  height: 0.875rem;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.cidText {
+  color: #002FA7;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.5625rem;
+  cursor: default;
+}

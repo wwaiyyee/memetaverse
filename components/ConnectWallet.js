@@ -8,14 +8,11 @@ export default function ConnectWallet() {
     setMounted(true);
   }, []);
 
+  if (!mounted) return <div style={{ minHeight: '40px' }} />;
+
   return (
-    <div style={{ visibility: mounted ? 'visible' : 'hidden', minHeight: '40px' }}>
-      <ConnectButton
-        label="connect wallet"
-        accountStatus="address"
-        chainStatus="none"
-        showBalance={true}
-      />
+    <div style={{ display: 'flex', alignItems: 'center', minHeight: '40px' }}>
+      <ConnectButton />
     </div>
   );
 }
