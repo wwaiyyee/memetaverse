@@ -1,22 +1,57 @@
 import { useRouter } from 'next/router';
-import { useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Share2, Bookmark } from 'lucide-react';
 import { MEMES } from '@/data/memes';
 import ConnectWallet from '@/components/ConnectWallet';
 import styles from './explore.module.css';
+import { ethers } from 'ethers';
 
 export default function Explore() {
   const router = useRouter();
-  const { q } = router.query;
+  const { id } = router.query;
 
-  const meme = useMemo(() => {
-    if (!q) return MEMES[0];
-    const found = MEMES.find(m => m.name.toLowerCase() === String(q).toLowerCase());
-    return found || MEMES[0];
-  }, [q]);
+  const [meme, setMeme] = useState(null);
 
-  if (!meme) return null;
+  useEffect(() => {
+    if (!id) return;
+    
+    const fetchMeme = async () => {
+      try {
+        if (String(id).startsWith('chain-')) {
+          const numericId = id.replace('chain-', '');
+          const rpcUrl = process.env.NEXT_PUBLIC_MONAD_RPC_URL || "https://monad-testnet.g.alchemy.com/v2/EuLqamhK_5ymLb8952SSc";
+          const provider = new ethers.JsonRpcProvider(rpcUrl);
+          const contractAddress = process.env.NEXT_PUBLIC_MEME_REGISTRY_ADDRESS;
+          const abi = ["function getMeme(uint256 _id) external view returns (tuple(uint256 id, string title, string cid, string description, string country, string category, string originDate, int256 latitude, int256 longitude, address uploader, uint256 createdAt))"];
+          
+          const contract = new ethers.Contract(contractAddress, abi, provider);
+          const data = await contract.getMeme(numericId);
+          
+          setMeme({
+            id: id,
+            name: data.title,
+            flag: '🌍',
+            country: data.country,
+            year: data.originDate,
+            desc: data.description,
+            cid: data.cid,
+            uploader: data.uploader
+          });
+        } else {
+          const found = MEMES.find(m => String(m.id) === String(id));
+          setMeme(found || MEMES[0]);
+        }
+      } catch (err) {
+        console.error("Error fetching meme details:", err);
+        setMeme(MEMES[0]);
+      }
+    };
+
+    fetchMeme();
+  }, [id]);
+
+  if (!meme) return <div style={{ display: 'flex', justifyContent: 'center', padding: '100px' }}>Loading meme details...</div>;
 
   return (
     <div className={styles.root}>
@@ -50,7 +85,15 @@ export default function Explore() {
         {/* Hero Image / Graphic */}
         <div className={styles.heroBox}>
           <div className={styles.heroGrid}></div>
-          <span className={styles.heroEmoji}>{meme.flag}</span>
+          {meme.cid ? (
+            <img 
+              src={`https://teal-certain-salamander-344.mypinata.cloud/ipfs/${meme.cid}`} 
+              alt={meme.name} 
+              style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '24px', position: 'relative', zIndex: 1 }} 
+            />
+          ) : (
+            <span className={styles.heroEmoji}>{meme.flag}</span>
+          )}
         </div>
 
         {/* Article Layout */}
@@ -67,41 +110,44 @@ export default function Explore() {
 
           {/* Main Content */}
           <article className={styles.content}>
-            <p>
-              {meme.name}, often recognized globally due to its viral spread, is a cultural artifact that emerged from {meme.country} in {meme.year}. It represents a unique moment in internet history where community adaptation and context collapse created a universally understood visual language.
-            </p>
-
-            <div>
-              <h2 className={styles.heading}>
-                Transmission and Context
-              </h2>
-              <p>
-                Internet phenomena do not spread directly from person to person in a vacuum. Instead, they rely on a vector—often social media platforms, forums, or messaging apps—to complete their transmission cycle. When a user is exposed to the {meme.name} template, they internalize the visual language. After an incubation period of cultural processing, they adapt the format to transmit their own relatable experiences to others through subsequent posts.
+            <div className={styles.descriptionBlock}>
+              <h2 className={styles.heading}>About this Meme</h2>
+              <p style={{ fontSize: '1.1rem', lineHeight: '1.7', color: '#333' }}>
+                {meme.desc || "No description provided."}
               </p>
             </div>
 
-            <div>
-              <h2 className={styles.heading}>
-                The Global Impact
-              </h2>
-              <p>
-                Once confined to specific subcultures, {meme.name} has now spread worldwide, putting nearly half of the world's internet population at risk of exposure. The attention economy estimates that millions of digital interactions occur each year involving this format. The cultural footprint is staggering, altering everyday vernacular and digital communication. Beyond the numbers, the human cost is immeasurable, with severe cases leading to real-world merchandising and, in tragic instances, corporate adoption.
-              </p>
-            </div>
-
-            {/* Key Takeaway Box */}
-            <div className={styles.takeawayBox}>
-              <h3 className={styles.takeawayTitle}>Key Takeaway</h3>
-              <p className={styles.takeawayText}>
-                Understanding the lifecycle of the digital artifact and the transmission of the format is the first step in digital literacy. Awareness drives action, and collective action is our best shield against misinformation.
-              </p>
-            </div>
+            {meme.cid && (
+              <div style={{ marginTop: '2rem', padding: '1.5rem', backgroundColor: '#f8f9fa', borderRadius: '12px', border: '1px solid #eee' }}>
+                <h2 className={styles.heading} style={{ marginTop: 0 }}>On-Chain Record</h2>
+                <p style={{ margin: '0.5rem 0', wordBreak: 'break-all' }}>
+                  <strong>Origin Country:</strong> {meme.country}
+                </p>
+                <p style={{ margin: '0.5rem 0', wordBreak: 'break-all' }}>
+                  <strong>Origin Date:</strong> {meme.year}
+                </p>
+                <p style={{ margin: '0.5rem 0', wordBreak: 'break-all' }}>
+                  <strong>Uploader:</strong> {meme.uploader}
+                </p>
+                <p style={{ margin: '0.5rem 0', wordBreak: 'break-all' }}>
+                  <strong>IPFS CID:</strong>{' '}
+                  <a 
+                    href={`https://teal-certain-salamander-344.mypinata.cloud/ipfs/${meme.cid}`} 
+                    target="_blank" 
+                    rel="noreferrer"
+                    style={{ color: '#002FA7', textDecoration: 'underline' }}
+                  >
+                    {meme.cid}
+                  </a>
+                </p>
+              </div>
+            )}
 
             {/* Footer */}
-            <div className={styles.footer}>
-              <p className={styles.footerLabel}>Written by</p>
+            <div className={styles.footer} style={{ marginTop: '3rem' }}>
+              <p className={styles.footerLabel}>Registered on</p>
               <p className={styles.footerName}>
-                The Memetaverse Research Team
+                Monad Testnet Meme Registry
               </p>
             </div>
           </article>
