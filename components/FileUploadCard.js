@@ -1,5 +1,5 @@
 import * as React from "react";
-import { UploadCloud, X, File as FileIcon, CheckCircle2, Trash2, Loader2 } from "lucide-react";
+import { UploadCloud, X, File as FileIcon, CheckCircle2, Trash2, Loader2, MapPin } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import styles from "./FileUploadCard.module.css";
 
@@ -48,12 +48,13 @@ async function uploadFileToPinata(file, metadata, onProgress) {
 }
 
 export const FileUploadCard = React.forwardRef(
-  ({ className, files = [], onFilesChange, onFileRemove, onUploadComplete, onClose, ...props }, ref) => {
+  ({ className, files = [], onFilesChange, onFileRemove, onUploadComplete, onClose, onPickLocationRequest, ...props }, ref) => {
     const [isDragging, setIsDragging] = React.useState(false);
     const [showForm, setShowForm] = React.useState(false);
     const [pendingFiles, setPendingFiles] = React.useState([]);
     const [isUploading, setIsUploading] = React.useState(false);
     const [uploadError, setUploadError] = React.useState(null);
+    const [isLocating, setIsLocating] = React.useState(false);
 
     // Metadata form state
     const [metadata, setMetadata] = React.useState({
@@ -112,6 +113,28 @@ export const FileUploadCard = React.forwardRef(
 
     const handleMetadataChange = (field, value) => {
       setMetadata(prev => ({ ...prev, [field]: value }));
+    };
+
+    const handleSearchCountry = async () => {
+      if (!metadata.country) return;
+      setIsLocating(true);
+      setUploadError(null);
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?country=${encodeURIComponent(metadata.country)}&format=json`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.length > 0) {
+            setMetadata((prev) => ({ ...prev, latitude: data[0].lat, longitude: data[0].lon }));
+          } else {
+            setUploadError("Could not find coordinates for this country");
+          }
+        }
+      } catch (err) {
+        console.error("Geocoding failed", err);
+        setUploadError("Geocoding failed");
+      } finally {
+        setIsLocating(false);
+      }
     };
 
     const handleSubmitUpload = async () => {
@@ -320,6 +343,7 @@ export const FileUploadCard = React.forwardRef(
                         placeholder="e.g. Japan, USA"
                         value={metadata.country}
                         onChange={(e) => handleMetadataChange("country", e.target.value)}
+                        onBlur={handleSearchCountry}
                         disabled={isUploading}
                       />
                     </div>
@@ -355,7 +379,22 @@ export const FileUploadCard = React.forwardRef(
 
                   <div className={styles.formRow}>
                     <div className={styles.formField}>
-                      <label className={styles.formLabel}>Latitude</label>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <label className={styles.formLabel}>Latitude</label>
+                        <div style={{ display: "flex", gap: "10px" }}>
+                          {onPickLocationRequest && (
+                            <button 
+                              type="button" 
+                              onClick={onPickLocationRequest} 
+                              disabled={isUploading}
+                              style={{ background: 'none', border: 'none', color: '#ec4899', cursor: 'pointer', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '4px' }}
+                            >
+                              <MapPin size={12} />
+                              Pick from Globe
+                            </button>
+                          )}
+                        </div>
+                      </div>
                       <input
                         type="number"
                         step="any"
