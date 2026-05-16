@@ -7,6 +7,45 @@ import ConnectWallet from '@/components/ConnectWallet';
 import styles from './explore.module.css';
 import { ethers } from 'ethers';
 
+const HARDCODED_VIDEOS = {
+  "QmQNc3aABzhkVfq5DJiRovnitLxVuX9mUQdXQPVwTkdRof": "/gallery/QmQNc3aABzhkVfq5DJiRovnitLxVuX9mUQdXQPVwTkdRof.mp4",
+  "QmV11XEDdHChQJ4TZRwAXxJuJPPhyxFzhHQyKhYyaBPmzw": "/gallery/QmV11XEDdHChQJ4TZRwAXxJuJPPhyxFzhHQyKhYyaBPmzw.mp4",
+  "QmaXWduUZbGnH921tyshv6A9oaX9ZRyjDeCNgnjYTKV2Xd": "/gallery/QmaXWduUZbGnH921tyshv6A9oaX9ZRyjDeCNgnjYTKV2Xd.mp4",
+};
+
+const HARDCODED_IMAGES = {
+  "QmQUrvSgvNGGxi6VT66T8bbcaBwvCmeRR7wRdfvTyS22X6": "/gallery/QmQUrvSgvNGGxi6VT66T8bbcaBwvCmeRR7wRdfvTyS22X6.jpg.jpeg",
+};
+
+const MediaRenderer = ({ cid, alt }) => {
+  const [isVideo, setIsVideo] = useState(false);
+  
+  // Check if we have a hardcoded local file for this CID
+  const hardcodedVideo = HARDCODED_VIDEOS[cid];
+  const hardcodedImage = HARDCODED_IMAGES[cid];
+  
+  const mediaUrl = hardcodedVideo || hardcodedImage || `https://teal-certain-salamander-344.mypinata.cloud/ipfs/${cid}`;
+
+  if (isVideo || hardcodedVideo) {
+    return (
+      <video
+        controls
+        src={mediaUrl}
+        style={{ maxWidth: '100%', maxHeight: '70vh', borderRadius: '16px', position: 'relative', zIndex: 1, boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }}
+      />
+    );
+  }
+
+  return (
+    <img
+      src={mediaUrl}
+      alt={alt}
+      onError={() => setIsVideo(true)}
+      style={{ maxWidth: '100%', maxHeight: '70vh', borderRadius: '16px', position: 'relative', zIndex: 1, boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }}
+    />
+  );
+};
+
 export default function Explore() {
   const router = useRouter();
   const { id } = router.query;
@@ -86,11 +125,7 @@ export default function Explore() {
         <div className={styles.heroBox}>
           <div className={styles.heroGrid}></div>
           {meme.cid ? (
-            <img 
-              src={`https://teal-certain-salamander-344.mypinata.cloud/ipfs/${meme.cid}`} 
-              alt={meme.name} 
-              style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '24px', position: 'relative', zIndex: 1 }} 
-            />
+            <MediaRenderer cid={meme.cid} alt={meme.name} />
           ) : (
             <span className={styles.heroEmoji}>{meme.flag}</span>
           )}

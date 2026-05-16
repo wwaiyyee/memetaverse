@@ -110,27 +110,24 @@
 /* Hero Image Box */
 .heroBox {
   width: 100%;
-  aspect-ratio: 2 / 1;
   border-radius: 1rem;
   margin-bottom: 3rem;
   position: relative;
   overflow: hidden;
-  background-color: #1a1a2e;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  background-color: #f8f9fa; /* Lighter background for images */
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
   display: flex;
   align-items: center;
   justify-content: center;
-}
-@media (min-width: 768px) {
-  .heroBox { aspect-ratio: 21 / 9; }
+  min-height: 300px;
 }
 
 .heroGrid {
   position: absolute;
   inset: 0;
   background-image: 
-    linear-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+    linear-gradient(rgba(0, 47, 167, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 47, 167, 0.03) 1px, transparent 1px);
   background-size: 30px 30px;
 }
 
