@@ -14,7 +14,7 @@ export default function ConnectWallet() {
         label="connect wallet"
         accountStatus="address"
         chainStatus="none"
-        showBalance={false}
+        showBalance={true}
       />
     </div>
   );
