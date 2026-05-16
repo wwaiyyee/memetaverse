@@ -3,14 +3,15 @@ import Link from 'next/link';
 import { useState, useCallback, useMemo } from 'react';
 import ConnectWallet from '@/components/ConnectWallet';
 import { MEMES } from '@/data/memes';
+import { FileUploadCard } from '@/components/FileUploadCard';
 import styles from './index.module.css';
 
-const MemeGlobe   = dynamic(() => import('@/components/MemeGlobe'),   { ssr: false });
-const MemeFlatMap = dynamic(() => import('@/components/MemeFlatMap'), { ssr: false });
+const MemeGlobe = dynamic(() => import('@/components/MemeGlobe'), { ssr: false });
 
 export default function Home() {
   const [query, setQuery]         = useState('');
   const [activeMeme, setActiveMeme] = useState(null);
+  const [uploadFiles, setUploadFiles] = useState([]);
 
   const isSearching = query.trim().length > 0;
 
@@ -42,6 +43,40 @@ export default function Home() {
     setActiveMeme(null);
   }, []);
 
+  const handleFilesChange = useCallback((newFiles) => {
+    setUploadFiles((prev) => [
+      ...prev,
+      ...newFiles.map(file => ({
+        id: Math.random().toString(36).substring(7),
+        file,
+        progress: 0,
+        status: 'uploading'
+      }))
+    ]);
+
+    // Simulate upload progress
+    newFiles.forEach((_, idx) => {
+      let progress = 0;
+      const interval = setInterval(() => {
+        progress += 10;
+        setUploadFiles(current => {
+          const newFilesArray = [...current];
+          const fileToUpdate = newFilesArray[newFilesArray.length - newFiles.length + idx];
+          if (fileToUpdate) {
+             fileToUpdate.progress = progress;
+             if (progress >= 100) fileToUpdate.status = 'completed';
+          }
+          return newFilesArray;
+        });
+        if (progress >= 100) clearInterval(interval);
+      }, 200);
+    });
+  }, []);
+
+  const handleFileRemove = useCallback((id) => {
+    setUploadFiles(prev => prev.filter(f => f.id !== id));
+  }, []);
+
   return (
     <div className={styles.root}>
 
@@ -57,20 +92,10 @@ export default function Home() {
       {/* ── Hero ── */}
       <section className={styles.hero}>
 
-        {/* Globe (hidden while searching) */}
-        <div
-          className={styles.globeWrap}
-          style={{ opacity: isSearching ? 0 : 1, pointerEvents: isSearching ? 'none' : 'auto', transition: 'opacity 0.4s ease' }}
-        >
+        {/* Globe (always visible) */}
+        <div className={styles.globeWrap}>
           <MemeGlobe onMarkerClick={handleGlobeClick} highlightIds={highlightIds} />
         </div>
-
-        {/* Flat ASCII map (shown while searching) */}
-        {isSearching && (
-          <div style={{ position: 'absolute', inset: 0, animation: 'fadeIn 0.35s ease both', zIndex: 2 }}>
-            <MemeFlatMap results={results} />
-          </div>
-        )}
 
         {/* ── Search bar — always visible ── */}
         <div className={styles.searchPanel}>
@@ -103,13 +128,15 @@ export default function Home() {
             </div>
           )}
 
-          {/* Count badge */}
-          {isSearching && results.length > 0 && (
-            <div className={styles.searchCount}>
-              <span className={styles.searchCountDot} />
-              {results.length} {results.length === 1 ? 'meme' : 'memes'} found — click a pin on the map
-            </div>
-          )}
+
+          {/* Upload card */}
+          <div className="mt-4">
+            <FileUploadCard
+              files={uploadFiles}
+              onFilesChange={handleFilesChange}
+              onFileRemove={handleFileRemove}
+            />
+          </div>
         </div>
 
         {/* ── Globe marker detail card ── */}
