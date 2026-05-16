@@ -7,10 +7,15 @@ import { FileUploadCard } from '@/components/FileUploadCard';
 import styles from './index.module.css';
 import { ethers } from 'ethers';
 import { MEME_REGISTRY_ADDRESS, MEME_REGISTRY_ABI } from '@/lib/contract';
+import { useWriteContract, usePublicClient } from 'wagmi';
+import { parseAbi } from 'viem';
 
 const MemeGlobe = dynamic(() => import('@/components/MemeGlobe'), { ssr: false });
 
 export default function Home() {
+  const { writeContractAsync } = useWriteContract();
+  const publicClient = usePublicClient();
+
   const [query, setQuery]         = useState('');
   const [activeMeme, setActiveMeme] = useState(null);
   const [uploadFiles, setUploadFiles] = useState([]);
@@ -18,9 +23,9 @@ export default function Home() {
 
   const isSearching = query.trim().length > 0;
 
-  // Combine static and on-chain memes
+  // Combine static and on-chain memes, prioritizing on-chain so they show in trending
   const allMemes = useMemo(() => {
-    return [...MEMES, ...onChainMemes];
+    return [...onChainMemes.reverse(), ...MEMES];
   }, [onChainMemes]);
 
   // Filter memes by name or country
@@ -88,28 +93,32 @@ export default function Home() {
 
     // Write to smart contract
     try {
-      if (!window.ethereum) throw new Error("Wallet not found");
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      const signer = await provider.getSigner();
-      const contract = new ethers.Contract(MEME_REGISTRY_ADDRESS, MEME_REGISTRY_ABI, signer);
-
       const latInt = Math.round(parseFloat(result.latitude || 0) * 10000);
       const lngInt = Math.round(parseFloat(result.longitude || 0) * 10000);
 
       console.log("Sending transaction to Monad Testnet...");
-      const tx = await contract.createMeme(
-        result.title || "Untitled",
-        result.cid,
-        result.description || "",
-        result.country || "Unknown",
-        result.category || "Other",
-        result.originDate || new Date().getFullYear().toString(),
-        latInt,
-        lngInt
-      );
+      const hash = await writeContractAsync({
+        address: MEME_REGISTRY_ADDRESS,
+        abi: parseAbi([
+          'function createMeme(string _title, string _cid, string _description, string _country, string _category, string _originDate, int256 _latitude, int256 _longitude) external returns (uint256)'
+        ]),
+        functionName: 'createMeme',
+        args: [
+          result.title || "Untitled",
+          result.cid,
+          result.description || "",
+          result.country || "Unknown",
+          result.category || "Other",
+          result.originDate || new Date().getFullYear().toString(),
+          latInt,
+          lngInt
+        ],
+      });
 
-      console.log("Transaction sent! Hash:", tx.hash);
-      await tx.wait();
+      console.log("Transaction sent! Hash:", hash);
+      if (publicClient) {
+        await publicClient.waitForTransactionReceipt({ hash });
+      }
       console.log("Transaction confirmed on Monad!");
       
       // Refresh on-chain memes
@@ -118,7 +127,7 @@ export default function Home() {
       console.error("Error writing to smart contract:", err);
       alert("Failed to save meme on-chain: " + (err.message || err));
     }
-  }, []);
+  }, [writeContractAsync, publicClient]);
 
   const fetchOnChainMemes = async () => {
     try {
@@ -219,30 +228,56 @@ export default function Home() {
         </div>
 
         {/* ── Globe marker detail card ── */}
-        {activeMeme && !isSearching && (
+        {/* ── Right Panel (Detail Card or Trending) ── */}
+        {!isSearching && (
           <div className={styles.rightPanel}>
-            <div className={styles.memeCard}>
-              <div className={styles.memeCardTop} />
-              <button className={styles.closeBtn} onClick={handleClose} aria-label="close">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <path d="M18 6 6 18M6 6l12 12"/>
-                </svg>
-              </button>
-              <div className={styles.memeIcon}>{activeMeme.flag}</div>
-              <div className={styles.memeMeta}>
-                <div className={styles.memeMetaLabel}>{activeMeme.country} · {activeMeme.year}</div>
-                <h2 className={styles.memeName}>{activeMeme.name}</h2>
+            {activeMeme ? (
+              <div className={styles.memeCard}>
+                <div className={styles.memeCardTop} />
+                <button className={styles.closeBtn} onClick={handleClose} aria-label="close">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <path d="M18 6 6 18M6 6l12 12"/>
+                  </svg>
+                </button>
+                <div className={styles.memeIcon}>{activeMeme.flag}</div>
+                <div className={styles.memeMeta}>
+                  <div className={styles.memeMetaLabel}>{activeMeme.country} · {activeMeme.year}</div>
+                  <h2 className={styles.memeName}>{activeMeme.name}</h2>
+                </div>
+                <p className={styles.memeDesc}>
+                  {activeMeme.desc || 'Click a marker to explore this meme\'s origin.'}
+                </p>
+                <Link href={`/explore?q=${encodeURIComponent(activeMeme.name)}`} className={styles.memeLink}>
+                  full story
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <path d="M5 12h14M12 5l7 7-7 7"/>
+                  </svg>
+                </Link>
               </div>
-              <p className={styles.memeDesc}>
-                {activeMeme.desc || 'Click a marker to explore this meme\'s origin.'}
-              </p>
-              <Link href={`/explore?q=${encodeURIComponent(activeMeme.name)}`} className={styles.memeLink}>
-                full story
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <path d="M5 12h14M12 5l7 7-7 7"/>
-                </svg>
-              </Link>
-            </div>
+            ) : (
+              <div className={styles.ticker}>
+                <div className={styles.tickerHeader}>
+                  <div className={styles.tickerLive} />
+                  trending atlas
+                </div>
+                <ul className={styles.tickerList}>
+                  {allMemes.slice(0, 5).map((meme, idx) => (
+                    <li
+                      key={meme.id}
+                      className={styles.tickerItem}
+                      style={{ animationDelay: `${idx * 0.05}s`, cursor: 'pointer' }}
+                      onClick={() => handleGlobeClick(meme)}
+                    >
+                      <div className={styles.tickerDot} />
+                      <div className={styles.tickerFlag}>{meme.flag}</div>
+                      <div className={styles.tickerName}>{meme.name}</div>
+                      <div className={styles.tickerCountry}>{meme.country}</div>
+                      <div className={styles.tickerYear}>{meme.year}</div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         )}
 
