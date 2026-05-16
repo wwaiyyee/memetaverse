@@ -26,10 +26,6 @@
   align-items: center;
   justify-content: space-between;
   padding: 20px 40px;
-  background: rgba(255,255,255,0.88);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border-bottom: 1px solid rgba(0,47,167,0.08);
 }
 
 .logo {
@@ -67,7 +63,6 @@
 .hero {
   flex: 1;
   position: relative;
-  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;

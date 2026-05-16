@@ -37,14 +37,14 @@ const KB = { r: 0, g: 47, b: 167 };          // #002FA7
 export default function MemeGlobe({ onMarkerClick, highlightId }) {
   const canvasRef      = useRef(null);
   const rotRef         = useRef(0.4);          // Y-axis (longitude)
-  const tiltRef        = useRef(0.0);          // X-axis tilt (latitude), clamped ±1.31 rad
+  const tiltRef        = useRef(0.0);          // X-axis tilt — unlimited, full 360°
   const dragRef        = useRef({ dragging: false, lastX: 0, lastY: 0 });
   const velRef         = useRef(0.002);        // Y-axis velocity
   const dotsRef        = useRef(null);
   const zoomRef        = useRef(1.0);
   const zoomTargetRef  = useRef(1.0);
   const pinchRef       = useRef(null);
-  const [size, setSize]= useState(600);
+  const [dims, setDims] = useState({ w: 800, h: 600 });
 
   /* ── Load land-mask texture once ── */
   useEffect(() => {
@@ -79,13 +79,9 @@ export default function MemeGlobe({ onMarkerClick, highlightId }) {
     img.src = 'https://unpkg.com/three-globe@2.34.0/example/img/earth-water.png';
   }, []);
 
-  /* ── Responsive size ── */
+  /* ── Track full viewport size ── */
   useEffect(() => {
-    const onResize = () => {
-      const vw = window.innerWidth;
-      const vh = window.innerHeight;
-      setSize(Math.min(Math.min(vw, vh) * 0.88, 860));
-    };
+    const onResize = () => setDims({ w: window.innerWidth, h: window.innerHeight });
     onResize();
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
@@ -182,12 +178,6 @@ export default function MemeGlobe({ onMarkerClick, highlightId }) {
       ctx.fillStyle = spec;
       ctx.fill();
 
-      // ── Thin border ──
-      ctx.beginPath();
-      ctx.arc(cx, cy, R, 0, Math.PI * 2);
-      ctx.strokeStyle = 'rgba(0,47,167,0.15)';
-      ctx.lineWidth = 1;
-      ctx.stroke();
 
       // ── Meme markers ──
       hoveredId = null;
@@ -309,7 +299,7 @@ export default function MemeGlobe({ onMarkerClick, highlightId }) {
         velRef.current   = dx * 0.004;
         rotRef.current  += velRef.current;
         // Vertical drag → tilt, clamped to ±75°
-        tiltRef.current  = Math.max(-1.31, Math.min(1.31, tiltRef.current + dy * 0.004));
+        tiltRef.current += dy * 0.004;
         dragRef.current.lastX = e.clientX;
         dragRef.current.lastY = e.clientY;
       }
@@ -340,7 +330,7 @@ export default function MemeGlobe({ onMarkerClick, highlightId }) {
         const dy = e.touches[0].clientY - dragRef.current.lastY;
         velRef.current  = dx * 0.004;
         rotRef.current += velRef.current;
-        tiltRef.current = Math.max(-1.31, Math.min(1.31, tiltRef.current + dy * 0.004));
+        tiltRef.current += dy * 0.004;
         dragRef.current.lastX = e.touches[0].clientX;
         dragRef.current.lastY = e.touches[0].clientY;
       }
@@ -392,14 +382,14 @@ export default function MemeGlobe({ onMarkerClick, highlightId }) {
       canvas.removeEventListener('touchend',   onTouchEnd);
       window.removeEventListener('mouseup',    onMouseUp);
     };
-  }, [size, highlightId, onMarkerClick]);
+  }, [dims, highlightId, onMarkerClick]);
 
   return (
     <canvas
       ref={canvasRef}
-      width={size}
-      height={size}
-      style={{ display: 'block' }}
+      width={dims.w}
+      height={dims.h}
+      style={{ display: 'block', position: 'absolute', inset: 0 }}
     />
   );
 }

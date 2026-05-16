@@ -3,7 +3,7 @@ import ConnectWallet from './ConnectWallet';
 
 export default function Navbar() {
   return (
-    <nav className="flex items-center justify-between px-8 py-5 border-b border-[#002FA7]/10 bg-white/90 backdrop-blur-sm">
+    <nav className="flex items-center justify-between px-8 py-5">
       <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'baseline', gap: 0 }}>
         <span style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: '22px', color: '#002FA7', letterSpacing: '-0.5px' }}>
           meme
