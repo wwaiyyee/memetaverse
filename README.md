@@ -89,10 +89,9 @@ open `http://localhost:3000`
 
 env vars needed:
 ```
-NEXT_PUBLIC_MEME_REGISTRY_ADDRESS=0x0CC995E04e2fa0380B21286B8Ba9afc4f5aA86af
-NEXT_PUBLIC_MONAD_RPC_URL=https://monad-testnet.g.alchemy.com/v2/<key>
-PINATA_JWT=<your pinata jwt>
-NEXT_PUBLIC_PINATA_GATEWAY=https://teal-certain-salamander-344.mypinata.cloud
+NEXT_PUBLIC_MEME_REGISTRY_ADDRESS
+NEXT_PUBLIC_MONAD_RPC_URL
+NEXT_PUBLIC_PINATA_GATEWAY
 ```
 
 ***
